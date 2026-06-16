@@ -1,0 +1,45 @@
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "sonner";
+import { HeroBg } from "@/components/hero-bg";
+import "./globals.css";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "Engagement Generator",
+  description: "สร้างคอนเทนต์คำถาม/ปริศนา ชวนคนคอมเมนต์ เพิ่มการเข้าถึงให้เพจ",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="th">
+      <head>
+        <link
+          href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <HeroBg>
+          <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+            {children}
+          </main>
+        </HeroBg>
+        <Toaster richColors position="top-right" />
+      </body>
+    </html>
+  );
+}

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install --cache /tmp/npm-cache 2>&1 | tail -5)",
+      "Bash(npx --cache /tmp/npm-cache vercel --version 2>&1 | head -3)",
+      "Bash(npx --cache /tmp/npm-cache vercel --version 2>&1)"
+    ]
+  }
+}
