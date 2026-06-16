@@ -143,7 +143,7 @@ export default function HomePage() {
         <PageHeader
           icon={Puzzle}
           iconColor="text-red-700"
-          title="Engagement Puzzle Generator"
+          title="MetaPuzz"
           description="สร้างปริศนา/เกม ที่ภาพ = ปริศนา — ชวนให้คนหยุดดูและคอมเมนต์ตอบ"
         />
       </div>

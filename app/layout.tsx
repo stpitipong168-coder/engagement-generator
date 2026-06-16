@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Engagement Generator",
-  description: "สร้างคอนเทนต์คำถาม/ปริศนา ชวนคนคอมเมนต์ เพิ่มการเข้าถึงให้เพจ",
+  title: "MetaPuzz",
+  description: "สร้างปริศนา/เกม ที่ภาพ = ปริศนา — ชวนให้คนหยุดดูและคอมเมนต์ตอบ",
 };
 
 export default function RootLayout({
