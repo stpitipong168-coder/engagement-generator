@@ -69,8 +69,35 @@ export interface MathChallengeData {
   equation: string;
   answer: number;
   headline: string;
-  theme?: "wood" | "chalkboard" | "paper" | "pink" | "blue" | "purple";
+  subText?: string;
+  theme?: "notebook" | "wood" | "chalkboard" | "vintage" | "graph" | "kraft";
 }
+
+// Rotating banks so the on-image text never looks repetitive.
+// headline = top banner hook, subText = challenge line under the equation.
+export const MATH_HOOKS: readonly string[] = [
+  "ทดสอบ IQ",
+  "คณิตคิดเร็ว",
+  "ใครตอบได้ช่วยที",
+  "ท้าให้คิด!",
+  "วัดไอคิวกันหน่อย",
+  "ข้อนี้ตอบถูกไหม",
+  "ใครเก่งเลขช่วยที",
+  "ลองคิดดูสิ!",
+  "เกมคณิตคิดเร็ว",
+  "ใครฉลาดตอบเลย",
+];
+
+export const MATH_SUBS: readonly string[] = [
+  "ห้ามใช้เครื่องคิดเลข",
+  "ให้เวลา 10 วินาที",
+  "ให้เวลา 20 วินาที",
+  "คิดในใจเท่านั้น",
+  "ตอบให้ไวที่สุด",
+  "ห้ามกดเครื่องคิดเลขนะ",
+  "ใครตอบถูกคอมเมนต์เลย",
+  "คิดออกไหมเอ่ย?",
+];
 
 // ===== PROMPT BUILDERS =====
 // ⚠️  ทุก function ต้องมี ${FB_SAFE_RULE} เสมอ — ทั้ง text prompt และ image prompt

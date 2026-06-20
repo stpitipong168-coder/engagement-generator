@@ -255,57 +255,161 @@ export function generateFindHiddenImage(data: FindHiddenData): string {
 }
 
 type MathTheme = {
+  style: "notebook" | "wood" | "chalkboard" | "vintage" | "graph" | "kraft";
   bg1: string; bg2: string;
-  cardFill: string; cardStroke: string;
-  lineColor: string;
-  eqColor: string; subColor: string; iconColor: string;
-  grainColor: string;
+  eqColor: string; subColor: string;
+  dividerColor: string;
+  shadow: string;        // text-shadow color so digits stay legible on texture
 };
 
 const MATH_THEMES: Record<string, MathTheme> = {
+  notebook: {
+    style: "notebook",
+    bg1: "#FFFDF5", bg2: "#FBE7CC",
+    eqColor: "#15388C", subColor: "#C0392B",
+    dividerColor: "rgba(21,56,140,0.30)",
+    shadow: "rgba(255,255,255,0.65)",
+  },
   wood: {
-    bg1: "#2C2416", bg2: "#1A1510",
-    cardFill: "rgba(255,240,200,0.08)", cardStroke: "rgba(255,200,100,0.3)",
-    lineColor: "rgba(255,180,80,0.25)",
-    eqColor: "#F5E6C8", subColor: "#FF8C69", iconColor: "#FF8C69",
-    grainColor: "rgba(255,220,150,0.04)",
+    style: "wood",
+    bg1: "#6E4C2B", bg2: "#3C2716",
+    eqColor: "#FBE9C8", subColor: "#FFC777",
+    dividerColor: "rgba(255,220,160,0.32)",
+    shadow: "rgba(0,0,0,0.55)",
   },
   chalkboard: {
-    bg1: "#1B4332", bg2: "#0D2818",
-    cardFill: "rgba(255,255,255,0.06)", cardStroke: "rgba(255,255,255,0.2)",
-    lineColor: "rgba(255,255,255,0.15)",
-    eqColor: "#FFFDE7", subColor: "#FFCC02", iconColor: "#FFCC02",
-    grainColor: "rgba(255,255,255,0.02)",
+    style: "chalkboard",
+    bg1: "#23402F", bg2: "#15261D",
+    eqColor: "#FFFDE7", subColor: "#FFD54F",
+    dividerColor: "rgba(255,255,255,0.30)",
+    shadow: "rgba(0,0,0,0.45)",
   },
-  paper: {
-    bg1: "#F5F0E8", bg2: "#EAE4D6",
-    cardFill: "rgba(255,255,255,0.6)", cardStroke: "rgba(100,80,60,0.25)",
-    lineColor: "rgba(100,120,200,0.2)",
-    eqColor: "#1A1A2E", subColor: "#C0392B", iconColor: "#C0392B",
-    grainColor: "rgba(100,80,60,0.03)",
+  vintage: {
+    style: "vintage",
+    bg1: "#ECE0C4", bg2: "#D6C096",
+    eqColor: "#2A2416", subColor: "#B23A2E",
+    dividerColor: "rgba(60,48,28,0.30)",
+    shadow: "rgba(255,250,235,0.55)",
   },
-  pink: {
-    bg1: "#F8BBD9", bg2: "#F48FB1",
-    cardFill: "rgba(255,255,255,0.35)", cardStroke: "rgba(180,40,120,0.2)",
-    lineColor: "rgba(180,40,120,0.12)",
-    eqColor: "#2D0A20", subColor: "#880E4F", iconColor: "#880E4F",
-    grainColor: "rgba(255,255,255,0.08)",
+  graph: {
+    style: "graph",
+    bg1: "#FFFFFF", bg2: "#EBF2FF",
+    eqColor: "#14488A", subColor: "#C62828",
+    dividerColor: "rgba(20,72,138,0.25)",
+    shadow: "rgba(255,255,255,0.70)",
   },
-  blue: {
-    bg1: "#1565C0", bg2: "#0D47A1",
-    cardFill: "rgba(255,255,255,0.1)", cardStroke: "rgba(100,200,255,0.3)",
-    lineColor: "rgba(100,200,255,0.2)",
-    eqColor: "#FFFFFF", subColor: "#90CAF9", iconColor: "#90CAF9",
-    grainColor: "rgba(255,255,255,0.03)",
-  },
-  purple: {
-    bg1: "#4A148C", bg2: "#2D0057",
-    cardFill: "rgba(255,255,255,0.08)", cardStroke: "rgba(200,150,255,0.3)",
-    lineColor: "rgba(200,150,255,0.2)",
-    eqColor: "#F3E5F5", subColor: "#CE93D8", iconColor: "#CE93D8",
-    grainColor: "rgba(255,255,255,0.03)",
+  kraft: {
+    style: "kraft",
+    bg1: "#C9A877", bg2: "#A8844E",
+    eqColor: "#3A2414", subColor: "#8C2D0E",
+    dividerColor: "rgba(58,36,20,0.32)",
+    shadow: "rgba(255,240,210,0.40)",
   },
 };
+
+// Paints a realistic textured background for the chosen math theme.
+function drawMathBackground(ctx: CanvasRenderingContext2D, theme: MathTheme): void {
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, SIZE);
+  bgGrad.addColorStop(0, theme.bg1);
+  bgGrad.addColorStop(1, theme.bg2);
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+
+  switch (theme.style) {
+    case "notebook": {
+      // Horizontal ruled lines + a red left margin line
+      ctx.strokeStyle = "rgba(70,110,200,0.22)";
+      ctx.lineWidth = 2;
+      for (let y = 210; y < SIZE; y += 64) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(SIZE, y);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = "rgba(205,70,70,0.35)";
+      ctx.beginPath();
+      ctx.moveTo(120, 0);
+      ctx.lineTo(120, SIZE);
+      ctx.stroke();
+      break;
+    }
+    case "wood": {
+      // Wavy grain streaks, light and dark
+      for (let i = 0; i < 26; i++) {
+        const y = (i / 26) * SIZE + 8;
+        const light = i % 2 === 0;
+        ctx.strokeStyle = light ? "rgba(190,140,85,0.10)" : "rgba(40,24,12,0.22)";
+        ctx.lineWidth = light ? 6 : 3;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.quadraticCurveTo(SIZE * 0.5, y + (light ? 22 : -18), SIZE, y + 6);
+        ctx.stroke();
+      }
+      drawVignette(ctx, "rgba(20,12,6,0.45)");
+      break;
+    }
+    case "chalkboard": {
+      // Chalk dust specks + thin chalk frame
+      for (let i = 0; i < 420; i++) {
+        ctx.fillStyle = `rgba(255,255,255,${0.015 + Math.random() * 0.04})`;
+        ctx.fillRect(Math.random() * SIZE, Math.random() * SIZE, 2, 2);
+      }
+      ctx.strokeStyle = "rgba(255,255,255,0.18)";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(36, 36, SIZE - 72, SIZE - 72);
+      break;
+    }
+    case "vintage": {
+      // Faint aged stains + corner vignette
+      for (let i = 0; i < 5; i++) {
+        const sx = Math.random() * SIZE;
+        const sy = Math.random() * SIZE;
+        const r = 120 + Math.random() * 160;
+        const stain = ctx.createRadialGradient(sx, sy, 0, sx, sy, r);
+        stain.addColorStop(0, "rgba(150,110,60,0.10)");
+        stain.addColorStop(1, "rgba(150,110,60,0)");
+        ctx.fillStyle = stain;
+        ctx.fillRect(0, 0, SIZE, SIZE);
+      }
+      drawVignette(ctx, "rgba(110,80,40,0.40)");
+      break;
+    }
+    case "graph": {
+      // Fine grid + bolder major grid lines
+      ctx.strokeStyle = "rgba(120,160,220,0.20)";
+      ctx.lineWidth = 1;
+      for (let p = 0; p <= SIZE; p += 40) {
+        ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, SIZE); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(SIZE, p); ctx.stroke();
+      }
+      ctx.strokeStyle = "rgba(120,160,220,0.40)";
+      ctx.lineWidth = 2;
+      for (let p = 0; p <= SIZE; p += 200) {
+        ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, SIZE); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(SIZE, p); ctx.stroke();
+      }
+      break;
+    }
+    case "kraft": {
+      // Paper fibre specks
+      for (let i = 0; i < 700; i++) {
+        const dark = Math.random() > 0.5;
+        ctx.fillStyle = dark ? "rgba(90,60,30,0.10)" : "rgba(255,240,210,0.10)";
+        ctx.fillRect(Math.random() * SIZE, Math.random() * SIZE, 3, 2);
+      }
+      drawVignette(ctx, "rgba(60,38,18,0.32)");
+      break;
+    }
+  }
+}
+
+function drawVignette(ctx: CanvasRenderingContext2D, edge: string): void {
+  const g = ctx.createRadialGradient(SIZE / 2, SIZE / 2, SIZE * 0.32, SIZE / 2, SIZE / 2, SIZE * 0.72);
+  g.addColorStop(0, "rgba(0,0,0,0)");
+  g.addColorStop(1, edge);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+}
 
 export function generateMathChallengeImage(data: MathChallengeData): string {
   const canvas = document.createElement("canvas");
@@ -313,79 +417,44 @@ export function generateMathChallengeImage(data: MathChallengeData): string {
   canvas.height = SIZE;
   const ctx = canvas.getContext("2d")!;
 
-  const theme = MATH_THEMES[data.theme ?? "wood"] ?? MATH_THEMES.wood;
+  const theme = MATH_THEMES[data.theme ?? "notebook"] ?? MATH_THEMES.notebook;
 
-  // Background
-  const bgGrad = ctx.createLinearGradient(0, 0, SIZE, SIZE);
-  bgGrad.addColorStop(0, theme.bg1);
-  bgGrad.addColorStop(1, theme.bg2);
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, SIZE, SIZE);
+  drawMathBackground(ctx, theme);
 
-  // Subtle texture lines
-  ctx.strokeStyle = theme.grainColor;
-  ctx.lineWidth = 2;
-  for (let i = 0; i < SIZE; i += 18) {
+  // Top banner = catchy hook (varies each generation)
+  drawBanner(ctx, data.headline);
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  // Equation — large, centred, with "= ?" so viewers know to answer
+  const eqText = `${data.equation} = ?`;
+  const eqY = SIZE * 0.47;
+  const eqFontSize = Math.max(46, Math.min(112, Math.floor((SIZE - 160) / (eqText.length * 0.52))));
+
+  // Framing lines above and below the equation (engraved look)
+  const frameW = SIZE * 0.66;
+  ctx.strokeStyle = theme.dividerColor;
+  ctx.lineWidth = 3;
+  for (const dy of [-(eqFontSize * 0.78), eqFontSize * 0.78]) {
     ctx.beginPath();
-    ctx.moveTo(0, i);
-    ctx.lineTo(SIZE, i + 30);
+    ctx.moveTo((SIZE - frameW) / 2, eqY + dy);
+    ctx.lineTo((SIZE + frameW) / 2, eqY + dy);
     ctx.stroke();
   }
 
-  // Banner
-  const bannerBottom = drawBanner(ctx, data.headline);
-
-  const cardX = 80;
-  const cardY = Math.max(bannerBottom + 60, 280);
-  const cardW = SIZE - 160;
-  const cardH = 300;
-
-  ctx.fillStyle = theme.cardFill;
-  ctx.beginPath();
-  ctx.roundRect(cardX, cardY, cardW, cardH, 16);
-  ctx.fill();
-
-  ctx.strokeStyle = theme.cardStroke;
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // Horizontal lines
-  ctx.strokeStyle = theme.lineColor;
-  ctx.lineWidth = 1.5;
-  const lineY1 = cardY + cardH * 0.38;
-  const lineY2 = cardY + cardH * 0.72;
-  ctx.beginPath();
-  ctx.moveTo(cardX + 30, lineY1);
-  ctx.lineTo(cardX + cardW - 30, lineY1);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(cardX + 30, lineY2);
-  ctx.lineTo(cardX + cardW - 30, lineY2);
-  ctx.stroke();
-
-  // Equation
+  ctx.save();
+  ctx.shadowColor = theme.shadow;
+  ctx.shadowBlur = 10;
   ctx.fillStyle = theme.eqColor;
-  const eqFontSize = Math.min(88, Math.floor(cardW / (data.equation.length * 0.55)));
   ctx.font = `bold ${eqFontSize}px ${FONT_FAMILY}`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(data.equation, SIZE / 2, cardY + cardH * 0.38);
+  ctx.fillText(eqText, SIZE / 2, eqY);
 
-  // Sub text
+  // Challenge sub-line (varies each generation)
   ctx.fillStyle = theme.subColor;
-  ctx.font = `bold 52px ${FONT_FAMILY}`;
-  ctx.fillText("ห้ามใช้เครื่องคิดเลข", SIZE / 2, cardY + cardH * 0.72);
-
-  // Icon
-  ctx.fillStyle = theme.iconColor.replace(")", ",0.15)").replace("rgb", "rgba").replace("#", "rgba(").replace("F", "");
-  ctx.fillStyle = "rgba(0,0,0,0.1)";
-  ctx.beginPath();
-  ctx.roundRect(SIZE / 2 - 100, cardY + cardH + 30, 200, 90, 12);
-  ctx.fill();
-
-  ctx.fillStyle = theme.iconColor;
-  ctx.font = `70px ${FONT_FAMILY}`;
-  ctx.fillText("🧮❌", SIZE / 2, cardY + cardH + 76);
+  ctx.font = `bold 60px ${FONT_FAMILY}`;
+  ctx.fillText(data.subText ?? "ห้ามใช้เครื่องคิดเลข", SIZE / 2, SIZE * 0.68);
+  ctx.restore();
 
   return canvas.toDataURL("image/png");
 }

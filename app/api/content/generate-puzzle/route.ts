@@ -9,6 +9,8 @@ import {
   buildRebusWordPrompt,
   buildCountItemsPrompt,
   buildMathChallengePrompt,
+  MATH_HOOKS,
+  MATH_SUBS,
   buildProverbRebusPrompt,
   buildProverbRebusAIImagePrompt,
   buildRebusWordImagePrompt,
@@ -16,7 +18,7 @@ import {
   type RebusElement,
 } from "@/lib/puzzle-types";
 
-const MATH_THEMES = ["wood", "chalkboard", "paper", "pink", "blue", "purple"] as const;
+const MATH_THEMES = ["notebook", "wood", "chalkboard", "vintage", "graph", "kraft"] as const;
 type MathThemeId = (typeof MATH_THEMES)[number];
 
 const REBUS_BANNER_STYLES = [
@@ -156,7 +158,8 @@ export async function POST(request: NextRequest) {
         canvasData: {
           equation: String(data.equation),
           answer: Number(data.answer),
-          headline: String(data.headline),
+          headline: pickRandom(MATH_HOOKS),
+          subText: pickRandom(MATH_SUBS),
           theme,
         },
         caption: String(data.caption),
