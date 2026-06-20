@@ -27,7 +27,7 @@ interface GenerationResult {
 }
 
 export default function HomePage() {
-  const [selectedModel, setSelectedModel] = useState<ImageModelId>(IMAGE_MODELS[0].id);
+  const [selectedModel] = useState<ImageModelId>(IMAGE_MODELS[0].id);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<GenerationResult | null>(null);
@@ -155,35 +155,14 @@ export default function HomePage() {
       <div className="grid gap-5 pb-24 md:grid-cols-2">
         {/* ฝั่งซ้าย — ฟอร์ม */}
         <div className="space-y-4">
-          {/* AI Model (สำหรับ type ที่ใช้ AI) */}
+          {/* โมเดลภาพ AI — ใช้ Nano Banana 2 อย่างเดียว */}
           <Card className="border-l-4 border-l-blue-500">
-            <CardContent className="p-0">
-              <div className="flex items-center gap-2.5 border-b px-4 py-2.5">
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-500/10">
-                  <Cpu className="h-3.5 w-3.5 text-blue-500" />
-                </div>
-                <span className="text-sm font-medium">AI Model (สำหรับปริศนาที่ใช้ AI วาดภาพ)</span>
+            <CardContent className="flex items-center gap-2.5 p-4">
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-500/10">
+                <Cpu className="h-3.5 w-3.5 text-blue-500" />
               </div>
-              <div className="flex flex-wrap gap-1.5 p-4">
-                {IMAGE_MODELS.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => setSelectedModel(m.id)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                      selectedModel === m.id
-                        ? "border-blue-500 bg-blue-500/10 text-blue-400"
-                        : "border-muted bg-muted/30 text-muted-foreground hover:bg-muted/50"
-                    }`}
-                  >
-                    {m.label}
-                    <span className="ml-1 text-[10px] opacity-60">({m.description})</span>
-                  </button>
-                ))}
-              </div>
-              <p className="px-4 pb-3 text-[11px] text-muted-foreground/70">
-                * ทายภาพ X พยางค์ ใช้ Nano Banana 2 เสมอ
-              </p>
+              <span className="text-sm font-medium">โมเดลภาพ AI: Nano Banana 2</span>
+              <span className="ml-auto text-[11px] text-muted-foreground/70">คุณภาพดี ราคาประหยัด</span>
             </CardContent>
           </Card>
 

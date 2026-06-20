@@ -2,7 +2,6 @@ const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 const DEFAULT_MODEL = "google/gemini-3.1-flash-image-preview";
 
 export const IMAGE_MODELS = [
-  { id: "google/gemini-3-pro-image-preview", label: "Nano Banana Pro", description: "คุณภาพสูง ราคาแพง" },
   { id: "google/gemini-3.1-flash-image-preview", label: "Nano Banana 2", description: "คุณภาพดี ราคาถูก" },
 ] as const;
 
