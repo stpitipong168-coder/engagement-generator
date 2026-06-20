@@ -1,4 +1,4 @@
-import type { FindHiddenData, MathChallengeData, ProverbRebusCanvasData } from "./puzzle-types";
+import type { FindHiddenData, MathChallengeData } from "./puzzle-types";
 
 type FHTheme = {
   draw: (ctx: CanvasRenderingContext2D, size: number) => void;
@@ -9,7 +9,20 @@ type FHTheme = {
 
 const FIND_HIDDEN_THEMES: Record<string, FHTheme> = {
   sky: {
-    draw: (ctx, s) => { ctx.fillStyle = "#87CEEB"; ctx.fillRect(0, 0, s, s); },
+    draw: (ctx, s) => {
+      const g = ctx.createLinearGradient(0, 0, 0, s);
+      g.addColorStop(0, "#87CEEB"); g.addColorStop(1, "#CFF0FF");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, s, s);
+      // soft fluffy clouds
+      ctx.fillStyle = "rgba(255,255,255,0.38)";
+      for (const [cx, cy, r] of [[180,180,80],[760,300,110],[420,640,95],[860,800,75],[150,880,65]] as number[][]) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.arc(cx + r * 0.8, cy + 10, r * 0.7, 0, Math.PI * 2);
+        ctx.arc(cx - r * 0.8, cy + 10, r * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    },
     text: "#1a1a1a", gridLine: "rgba(0,0,0,0.06)",
   },
   sunset: {
@@ -18,6 +31,10 @@ const FIND_HIDDEN_THEMES: Record<string, FHTheme> = {
       g.addColorStop(0, "#FF6B6B"); g.addColorStop(0.45, "#FE8797");
       g.addColorStop(0.75, "#FFC2D4"); g.addColorStop(1, "#FFE4BA");
       ctx.fillStyle = g; ctx.fillRect(0, 0, s, s);
+      // warm sun glow near the horizon
+      const sun = ctx.createRadialGradient(s * 0.5, s * 0.8, 0, s * 0.5, s * 0.8, s * 0.45);
+      sun.addColorStop(0, "rgba(255,241,180,0.65)"); sun.addColorStop(1, "rgba(255,241,180,0)");
+      ctx.fillStyle = sun; ctx.fillRect(0, 0, s, s);
     },
     text: "#2D0010", gridLine: "rgba(0,0,0,0.07)",
   },
@@ -118,6 +135,18 @@ const FIND_HIDDEN_THEMES: Record<string, FHTheme> = {
       g.addColorStop(0, "#FFD54F"); g.addColorStop(0.4, "#FF8F00");
       g.addColorStop(0.75, "#E64A19"); g.addColorStop(1, "#4E342E");
       ctx.fillStyle = g; ctx.fillRect(0, 0, s, s);
+      // scattered falling leaves
+      const phi = 2.39996;
+      for (let i = 0; i < 44; i++) {
+        const r = Math.sqrt(i / 44) * s * 0.72 + 20;
+        const a = i * phi;
+        const x = s / 2 + Math.cos(a) * r;
+        const y = s / 2 + Math.sin(a) * r;
+        ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+        ctx.fillStyle = i % 2 ? "rgba(120,40,10,0.13)" : "rgba(255,224,150,0.14)";
+        ctx.beginPath(); ctx.ellipse(0, 0, 18, 9, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
     },
     text: "#1A0A00", gridLine: "rgba(0,0,0,0.1)",
   },
@@ -139,6 +168,159 @@ const FIND_HIDDEN_THEMES: Record<string, FHTheme> = {
       }
     },
     text: "#FFFFFF", gridLine: "rgba(255,255,255,0.08)",
+  },
+  bubbles: {
+    draw: (ctx, s) => {
+      const g = ctx.createLinearGradient(0, 0, 0, s);
+      g.addColorStop(0, "#E1F5FE"); g.addColorStop(1, "#B3E5FC");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, s, s);
+      for (let i = 0; i < 26; i++) {
+        const x = Math.random() * s, y = Math.random() * s, r = 22 + Math.random() * 58;
+        ctx.fillStyle = "rgba(255,255,255,0.30)";
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "rgba(2,136,209,0.18)"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+      }
+    },
+    text: "#0D2233", gridLine: "rgba(0,0,0,0.05)",
+  },
+  confetti: {
+    draw: (ctx, s) => {
+      ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, s, s);
+      const cols = ["#FF8A80", "#82B1FF", "#69F0AE", "#FFD180", "#EA80FC", "#40C4FF"];
+      for (let i = 0; i < 150; i++) {
+        const x = Math.random() * s, y = Math.random() * s;
+        ctx.save(); ctx.translate(x, y); ctx.rotate(Math.random() * Math.PI);
+        ctx.fillStyle = cols[i % cols.length] + "66";
+        ctx.fillRect(-9, -4, 18, 8); ctx.restore();
+      }
+    },
+    text: "#1a1a1a", gridLine: "rgba(0,0,0,0.05)",
+  },
+  blueprint: {
+    draw: (ctx, s) => {
+      ctx.fillStyle = "#0D47A1"; ctx.fillRect(0, 0, s, s);
+      ctx.strokeStyle = "rgba(160,210,255,0.18)"; ctx.lineWidth = 1;
+      for (let p = 0; p <= s; p += 40) {
+        ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, s); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(s, p); ctx.stroke();
+      }
+      ctx.strokeStyle = "rgba(160,210,255,0.36)"; ctx.lineWidth = 2;
+      for (let p = 0; p <= s; p += 200) {
+        ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, s); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(s, p); ctx.stroke();
+      }
+    },
+    text: "#FFFFFF", gridLine: "rgba(160,210,255,0.12)",
+  },
+  hearts: {
+    draw: (ctx, s) => {
+      ctx.fillStyle = "#FFF0F5"; ctx.fillRect(0, 0, s, s);
+      const heart = (x: number, y: number, sz: number) => {
+        ctx.save(); ctx.translate(x, y); ctx.scale(sz, sz);
+        ctx.fillStyle = "rgba(244,143,177,0.20)";
+        ctx.beginPath(); ctx.moveTo(0, 3);
+        ctx.bezierCurveTo(-5, -3, -12, 2, 0, 12);
+        ctx.bezierCurveTo(12, 2, 5, -3, 0, 3);
+        ctx.fill(); ctx.restore();
+      };
+      for (let r = 0; r < 8; r++) for (let c = 0; c < 7; c++) heart(c * 160 + (r % 2 ? 80 : 10) + 30, r * 140 + 40, 2.4);
+    },
+    text: "#7A1145", gridLine: "rgba(0,0,0,0.05)",
+  },
+  honeycomb: {
+    draw: (ctx, s) => {
+      ctx.fillStyle = "#FFFDE7"; ctx.fillRect(0, 0, s, s);
+      ctx.strokeStyle = "rgba(255,179,0,0.22)"; ctx.lineWidth = 2;
+      const R = 48;
+      for (let row = 0; row * R * 1.5 < s + R; row++) {
+        for (let col = 0; col * Math.sqrt(3) * R < s + R; col++) {
+          const x = col * Math.sqrt(3) * R + (row % 2 ? Math.sqrt(3) * R / 2 : 0);
+          const y = row * R * 1.5;
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const a = Math.PI / 180 * (60 * i - 30);
+            const px = x + R * Math.cos(a), py = y + R * Math.sin(a);
+            i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+          }
+          ctx.closePath(); ctx.stroke();
+        }
+      }
+    },
+    text: "#3E2C00", gridLine: "rgba(0,0,0,0.05)",
+  },
+  notebook: {
+    draw: (ctx, s) => {
+      const g = ctx.createLinearGradient(0, 0, 0, s);
+      g.addColorStop(0, "#FFFDF5"); g.addColorStop(1, "#FBEFD8");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, s, s);
+      ctx.strokeStyle = "rgba(70,110,200,0.20)"; ctx.lineWidth = 2;
+      for (let y = 80; y < s; y += 58) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(s, y); ctx.stroke(); }
+      ctx.strokeStyle = "rgba(205,70,70,0.30)";
+      ctx.beginPath(); ctx.moveTo(90, 0); ctx.lineTo(90, s); ctx.stroke();
+    },
+    text: "#15388C", gridLine: "rgba(70,110,200,0.10)",
+  },
+  wood: {
+    draw: (ctx, s) => {
+      const g = ctx.createLinearGradient(0, 0, 0, s);
+      g.addColorStop(0, "#6E4C2B"); g.addColorStop(1, "#3C2716");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, s, s);
+      for (let i = 0; i < 26; i++) {
+        const y = (i / 26) * s + 6, light = i % 2 === 0;
+        ctx.strokeStyle = light ? "rgba(190,140,85,0.10)" : "rgba(40,24,12,0.22)";
+        ctx.lineWidth = light ? 6 : 3;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.quadraticCurveTo(s * 0.5, y + (light ? 20 : -16), s, y + 5); ctx.stroke();
+      }
+    },
+    text: "#FFE7C2", gridLine: "rgba(255,220,160,0.12)",
+  },
+  kraft: {
+    draw: (ctx, s) => {
+      const g = ctx.createLinearGradient(0, 0, 0, s);
+      g.addColorStop(0, "#C9A877"); g.addColorStop(1, "#A8844E");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, s, s);
+      for (let i = 0; i < 700; i++) {
+        ctx.fillStyle = Math.random() > 0.5 ? "rgba(90,60,30,0.10)" : "rgba(255,240,210,0.10)";
+        ctx.fillRect(Math.random() * s, Math.random() * s, 3, 2);
+      }
+    },
+    text: "#3A2414", gridLine: "rgba(58,36,20,0.10)",
+  },
+  candy: {
+    draw: (ctx, s) => {
+      ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, s, s);
+      const cols = ["#FFCDD2", "#C8E6C9", "#BBDEFB", "#FFF9C4", "#E1BEE7"];
+      const w = 70; let k = 0;
+      ctx.save(); ctx.translate(s / 2, s / 2); ctx.rotate(-Math.PI / 5);
+      for (let i = -s * 1.5; i < s * 1.5; i += w) { ctx.fillStyle = cols[k % cols.length] + "99"; ctx.fillRect(i, -s * 1.5, w, s * 3); k++; }
+      ctx.restore();
+    },
+    text: "#3A2A4A", gridLine: "rgba(0,0,0,0.05)",
+  },
+  mintdots: {
+    draw: (ctx, s) => {
+      ctx.fillStyle = "#E0F2F1"; ctx.fillRect(0, 0, s, s);
+      ctx.fillStyle = "rgba(0,150,136,0.14)";
+      for (let r = 0; r < 14; r++) for (let c = 0; c < 14; c++) {
+        ctx.beginPath(); ctx.arc(c * 80 + (r % 2 ? 40 : 0) + 20, r * 80 + 20, 9, 0, Math.PI * 2); ctx.fill();
+      }
+    },
+    text: "#004D40", gridLine: "rgba(0,77,64,0.07)",
+  },
+  lavender: {
+    draw: (ctx, s) => {
+      const g = ctx.createLinearGradient(0, 0, 0, s);
+      g.addColorStop(0, "#EDE7F6"); g.addColorStop(1, "#D1C4E9");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, s, s);
+      ctx.strokeStyle = "rgba(103,58,183,0.13)"; ctx.lineWidth = 3;
+      for (let y = 30; y < s; y += 54) {
+        ctx.beginPath();
+        for (let x = 0; x <= s; x += 8) { const wy = y + Math.sin((x / s) * Math.PI * 5) * 10; x ? ctx.lineTo(x, wy) : ctx.moveTo(x, wy); }
+        ctx.stroke();
+      }
+    },
+    text: "#311B92", gridLine: "rgba(49,27,146,0.08)",
   },
 };
 
@@ -228,7 +410,7 @@ export function generateFindHiddenImage(data: FindHiddenData): string {
     ctx.stroke();
   }
 
-  const hiddenSet = new Set(data.hiddenPositions.map(([r, c]) => `${r},${c}`));
+  const hiddenMap = new Map(data.hidden.map((h) => [`${h.r},${h.c}`, h.char]));
   const fontSize = Math.min(Math.floor(cellW * 0.55), Math.floor(cellH * 0.62), 58);
 
   ctx.font = `bold ${fontSize}px ${FONT_FAMILY}`;
@@ -239,14 +421,14 @@ export function generateFindHiddenImage(data: FindHiddenData): string {
     for (let c = 0; c < data.cols; c++) {
       const x = c * cellW + cellW / 2;
       const y = gridTop + r * cellH + cellH / 2;
-      const isHidden = hiddenSet.has(`${r},${c}`);
+      const hiddenChar = hiddenMap.get(`${r},${c}`);
       // Same color for all — difficulty comes from similar shape, not color difference
       if (theme.glow) {
         ctx.shadowColor = theme.glow;
         ctx.shadowBlur = 14;
       }
       ctx.fillStyle = theme.text;
-      ctx.fillText(isHidden ? data.hiddenChar : data.mainChar, x, y);
+      ctx.fillText(hiddenChar ?? data.mainChar, x, y);
       ctx.shadowBlur = 0;
     }
   }
@@ -588,76 +770,3 @@ export async function generateMathChallengeImage(data: MathChallengeData): Promi
   return canvas.toDataURL("image/png");
 }
 
-// AI generates background + objects only; canvas draws banner + Thai chars (OS font = correct combining chars).
-export async function generateProverbRebusCanvas(
-  data: ProverbRebusCanvasData,
-): Promise<string> {
-  const canvas = document.createElement("canvas");
-  canvas.width = SIZE;
-  canvas.height = SIZE;
-  const ctx = canvas.getContext("2d")!;
-
-  // Draw AI background (objects already positioned by AI)
-  await new Promise<void>((resolve, reject) => {
-    const img = new window.Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => { ctx.drawImage(img, 0, 0, SIZE, SIZE); resolve(); };
-    img.onerror = reject;
-    img.src = data.backgroundImageDataUri;
-  });
-
-  // Cover top 16% with banner background color first (AI may have left it light)
-  const BANNER_AREA = Math.round(SIZE * 0.16);
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, BANNER_AREA);
-  bgGrad.addColorStop(0, "#5A0000");
-  bgGrad.addColorStop(1, "#8B0E0E");
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, SIZE, BANNER_AREA);
-
-  // Draw banner text centered in the banner area
-  const bannerFontSize = 72;
-  ctx.font = `bold ${bannerFontSize}px ${FONT_FAMILY}`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  const textGrad = ctx.createLinearGradient(0, 0, 0, BANNER_AREA);
-  textGrad.addColorStop(0, "#FFFFFF");
-  textGrad.addColorStop(0.5, "#FFF5D6");
-  textGrad.addColorStop(1, "#E8C060");
-  ctx.fillStyle = textGrad;
-  ctx.fillText(data.headline, SIZE / 2, BANNER_AREA / 2);
-
-  const bannerBottom = BANNER_AREA;
-
-  // Grid dimensions (must match buildProverbRebusBackgroundPrompt layout)
-  const COLS = data.cols;
-  const elements = data.rebusElements;
-  const rows = Math.ceil(elements.length / COLS);
-  const contentTop = bannerBottom + 10;
-  const contentH = SIZE - contentTop - 10;
-  const cellW = SIZE / COLS;
-  const cellH = contentH / rows;
-
-  // Draw Thai chars at their grid positions — OS font handles combining chars correctly
-  elements.forEach((el, idx) => {
-    if (el.type !== "char" || !el.char) return;
-
-    const row = Math.floor(idx / COLS);
-    const col = idx % COLS;
-    const cx = col * cellW + cellW / 2;
-    const cy = contentTop + row * cellH + cellH / 2;
-
-    const charSize = Math.min(cellW * 0.68, cellH * 0.68, 200);
-
-    // White halo for readability on any AI background
-    ctx.shadowColor = "rgba(255,255,255,0.9)";
-    ctx.shadowBlur = 22;
-    ctx.font = `bold ${charSize}px ${FONT_FAMILY}`;
-    ctx.fillStyle = "#111111";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(el.char, cx, cy);
-    ctx.shadowBlur = 0;
-  });
-
-  return canvas.toDataURL("image/png");
-}

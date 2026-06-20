@@ -5,7 +5,7 @@ import { PuzzleForm, type PuzzleFormData, type PuzzleFormHandle } from "@/compon
 import { ImagePreview } from "@/components/image-preview";
 import { IMAGE_MODELS, type ImageModelId } from "@/lib/image-generator";
 import { PUZZLE_TYPES } from "@/lib/puzzle-types";
-import { generateFindHiddenImage, generateMathChallengeImage, generateProverbRebusCanvas } from "@/lib/canvas-puzzles";
+import { generateFindHiddenImage, generateMathChallengeImage } from "@/lib/canvas-puzzles";
 import type { FindHiddenData, MathChallengeData, ProverbRebusCanvasData } from "@/lib/puzzle-types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,10 +49,9 @@ export default function HomePage() {
 
       try {
         const ls = localStorage;
-        const excludeProverb   = data.puzzleType === "proverb-rebus" ? (ls.getItem("lastProverb") ?? undefined) : undefined;
         const excludeFindPair  = data.puzzleType === "find-hidden"   ? (ls.getItem("lastFindPair") ?? undefined) : undefined;
         const excludeWords     = data.puzzleType === "rebus-word"    ? (JSON.parse(ls.getItem("rebusWordHistory") ?? "[]") as string[]) : [];
-        const excludeSubject   = data.puzzleType === "count-items"   ? (ls.getItem("lastCountSubject") ?? undefined) : undefined;
+        const excludeSubjects  = data.puzzleType === "count-items"   ? (JSON.parse(ls.getItem("countSubjectHistory") ?? "[]") as string[]) : [];
         const excludeEquation  = data.puzzleType === "math-challenge" ? (ls.getItem("lastMathEq") ?? undefined) : undefined;
 
         const res = await fetch("/api/content/generate-puzzle", {
@@ -62,10 +61,9 @@ export default function HomePage() {
             ...data,
             model: selectedModel,
             aspectRatio: "1:1",
-            ...(excludeProverb  ? { excludeProverb }  : {}),
             ...(excludeFindPair ? { excludeFindPair }  : {}),
             ...(excludeWords.length ? { excludeWords }  : {}),
-            ...(excludeSubject  ? { excludeSubject }   : {}),
+            ...(excludeSubjects.length ? { excludeSubjects } : {}),
             ...(excludeEquation ? { excludeEquation }  : {}),
           }),
         });
@@ -78,14 +76,18 @@ export default function HomePage() {
         const r: GenerationResult = await res.json();
         setResult(r);
         setEditedCaption(r.caption);
-        if (r.puzzleType === "proverb-rebus" && r.answer)  localStorage.setItem("lastProverb", String(r.answer));
         if (r.puzzleType === "find-hidden"   && r.canvasData) localStorage.setItem("lastFindPair", (r.canvasData as {mainChar:string}).mainChar);
         if (r.puzzleType === "rebus-word"    && r.answer) {
           const hist = (JSON.parse(localStorage.getItem("rebusWordHistory") ?? "[]") as string[]).filter((w) => w !== String(r.answer));
           hist.push(String(r.answer));
           localStorage.setItem("rebusWordHistory", JSON.stringify(hist.slice(-15)));
         }
-        if (r.puzzleType === "count-items"   && r.answer !== undefined) localStorage.setItem("lastCountSubject", String((r as {subject?: string}).subject ?? r.answer));
+        if (r.puzzleType === "count-items"   && r.answer !== undefined) {
+          const subj = String((r as {subject?: string}).subject ?? r.answer);
+          const hist = (JSON.parse(localStorage.getItem("countSubjectHistory") ?? "[]") as string[]).filter((w) => w !== subj);
+          hist.push(subj);
+          localStorage.setItem("countSubjectHistory", JSON.stringify(hist.slice(-15)));
+        }
         if (r.puzzleType === "math-challenge" && r.canvasData) localStorage.setItem("lastMathEq", (r.canvasData as {equation:string}).equation);
 
         if (r.method === "canvas" && r.canvasData) {
@@ -137,9 +139,7 @@ export default function HomePage() {
         ? `คำตอบ: ${result.answer}`
         : result?.puzzleType === "rebus-word"
           ? `คำตอบ: ${result.answer}`
-          : result?.puzzleType === "proverb-rebus"
-            ? `สำนวน: ${result.answer}`
-            : "";
+          : "";
 
   return (
     <div>

@@ -161,9 +161,7 @@ export const PuzzleForm = forwardRef<PuzzleFormHandle, PuzzleFormProps>(
                       ? "เช่น อาหาร, สัตว์, ของใช้ในบ้าน..."
                       : puzzleType === "count-items"
                         ? "เช่น แมวดำ, สุนัข, นกแก้ว..."
-                        : puzzleType === "proverb-rebus"
-                          ? "เช่น สำนวนเกี่ยวกับสัตว์, ความสัมพันธ์..."
-                          : "ปล่อยว่างให้ AI คิดเอง..."
+                        : "ปล่อยว่างให้ AI คิดเอง..."
                 }
                 value={customTopic}
                 onChange={(e) => setCustomTopic(e.target.value)}

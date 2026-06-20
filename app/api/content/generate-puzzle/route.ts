@@ -3,18 +3,22 @@ import { chatCompletion } from "@/lib/openrouter";
 import { generateImage } from "@/lib/image-generator";
 import {
   PUZZLE_TYPES,
-  PROVERB_BANK,
   FIND_HIDDEN_PAIRS,
-  FIND_HIDDEN_CAPTIONS,
+  FIND_DIFFERENT_BANK,
+  buildFindHiddenHeadline,
+  buildFindHiddenCaption,
+  type FindHiddenFormat,
   buildRebusWordPrompt,
   buildCountItemsPrompt,
+  COUNT_ART_STYLES,
+  COUNT_COMPOSITIONS,
+  COUNT_SETTINGS,
+  COUNT_BANNER_STYLES,
   buildMathChallengePrompt,
   buildMathBackgroundPrompt,
   MATH_HOOKS,
   MATH_SUBS,
   MATH_AI_SCENES,
-  buildProverbRebusPrompt,
-  buildProverbRebusAIImagePrompt,
   buildRebusWordImagePrompt,
   buildAIPuzzleImagePrompt,
   type RebusElement,
@@ -55,7 +59,7 @@ const REBUS_BANNER_STYLES = [
   Font: bold white Thai text, very large, centered inside the badge. NO text outside the badge.`,
 ] as const;
 
-const FIND_HIDDEN_THEMES = ["sky", "sunset", "space", "polkadots", "stripes", "chalkboard", "graphpaper", "neon", "autumn", "ocean"] as const;
+const FIND_HIDDEN_THEMES = ["sky", "sunset", "space", "polkadots", "stripes", "chalkboard", "graphpaper", "neon", "autumn", "ocean", "bubbles", "confetti", "blueprint", "hearts", "honeycomb", "notebook", "wood", "kraft", "candy", "mintdots", "lavender"] as const;
 type FindHiddenThemeId = (typeof FIND_HIDDEN_THEMES)[number];
 
 function pickRandom<T>(arr: readonly T[]): T {
@@ -102,11 +106,11 @@ export async function POST(request: NextRequest) {
       mathBgStyle = "canvas",
       model,
       aspectRatio = "1:1",
-      excludeProverb,
       excludeFindPair,
       excludeWord,
       excludeWords,
       excludeSubject,
+      excludeSubjects,
       excludeEquation,
     } = body;
 
@@ -118,33 +122,59 @@ export async function POST(request: NextRequest) {
     // ===== CANVAS TYPES =====
 
     if (puzzleType === "find-hidden") {
-      // Pick from hardcoded bank (no AI needed) — exclude last used pair
-      const available = excludeFindPair
-        ? FIND_HIDDEN_PAIRS.filter((p) => p.mainChar !== excludeFindPair)
-        : [...FIND_HIDDEN_PAIRS];
-      const pair = pickRandom(available.length > 0 ? available : FIND_HIDDEN_PAIRS);
+      // Rotate between 3 puzzle formats for variety
+      const format = pickRandom(["find", "count", "different"] as const) as FindHiddenFormat;
 
       // Grid size variation
       const rows = 9 + Math.floor(Math.random() * 3); // 9–11
       const cols = 7 + Math.floor(Math.random() * 4); // 7–10
-      const hiddenCount = 1 + Math.floor(Math.random() * 3); // 1–3
 
-      const captionFn = pickRandom(FIND_HIDDEN_CAPTIONS);
+      let mainChar: string;
+      let target: string; // what the headline references
+      let hidden: { r: number; c: number; char: string }[];
+      let answer: string | number;
+
+      if (format === "different") {
+        // "หาตัวที่ไม่ใช่ X" — grid of X with a few similar-but-different numbers
+        const avail = excludeFindPair
+          ? FIND_DIFFERENT_BANK.filter((e) => e.main !== excludeFindPair)
+          : [...FIND_DIFFERENT_BANK];
+        const entry = pickRandom(avail.length > 0 ? avail : FIND_DIFFERENT_BANK);
+        mainChar = entry.main;
+        target = entry.main;
+        const count = 2 + Math.floor(Math.random() * 4); // 2–5 odd ones
+        hidden = randomHiddenPositions(rows, cols, count).map(([r, c]) => ({
+          r, c, char: pickRandom(entry.variants),
+        }));
+        answer = hidden.length; // how many are NOT the main
+      } else {
+        // find / count use the visually-similar lookalike pairs
+        const avail = excludeFindPair
+          ? FIND_HIDDEN_PAIRS.filter((p) => p.mainChar !== excludeFindPair)
+          : [...FIND_HIDDEN_PAIRS];
+        const pair = pickRandom(avail.length > 0 ? avail : FIND_HIDDEN_PAIRS);
+        mainChar = pair.mainChar;
+        target = pair.hiddenChar;
+        const count = format === "count" ? 3 + Math.floor(Math.random() * 6) : 1; // count: 3–8, find: 1
+        hidden = randomHiddenPositions(rows, cols, count).map(([r, c]) => ({
+          r, c, char: pair.hiddenChar,
+        }));
+        answer = format === "count" ? hidden.length : pair.hiddenChar;
+      }
 
       return NextResponse.json({
         method: "canvas",
         puzzleType: "find-hidden",
         canvasData: {
-          mainChar: pair.mainChar,
-          hiddenChar: pair.hiddenChar,
+          mainChar,
+          hidden,
           rows,
           cols,
-          hiddenPositions: randomHiddenPositions(rows, cols, hiddenCount),
-          headline: pair.headline,
+          headline: buildFindHiddenHeadline(format, target),
           theme: pickRandom(FIND_HIDDEN_THEMES) as FindHiddenThemeId,
         },
-        caption: captionFn(pair.hiddenChar),
-        answer: pair.hiddenChar,
+        caption: buildFindHiddenCaption(format, target),
+        answer,
       });
     }
 
@@ -196,51 +226,14 @@ export async function POST(request: NextRequest) {
         if (list.length === syllableCount) break;
         if (idea.targetWord) excluded.push(String(idea.targetWord)); // avoid the bad word next try
       } while (++attempt < 3);
-    } else if (puzzleType === "count-items") {
-      idea = await genIdea(buildCountItemsPrompt(customTopic, excludeSubject));
     } else {
-      idea = await genIdea(buildProverbRebusPrompt(customTopic, excludeProverb));
-    }
-
-    // ===== PROVERB-REBUS: pure AI all-in-one (standalone chars only in bank) =====
-    if (puzzleType === "proverb-rebus") {
-      if (!idea.headline || !idea.caption || !idea.proverb) {
-        return NextResponse.json(
-          { error: "AI สร้างไอเดียไม่สมบูรณ์ — ลองใหม่อีกครั้ง" },
-          { status: 500 },
-        );
-      }
-
-      const bankEntry = PROVERB_BANK.find(
-        (p) => p.proverb === String(idea.proverb),
-      );
-      if (!bankEntry) {
-        return NextResponse.json(
-          {
-            error: `AI เลือกสำนวนนอกรายการ ("${idea.proverb}") — ลองใหม่อีกครั้ง`,
-          },
-          { status: 500 },
-        );
-      }
-
-      const imagePrompt = buildProverbRebusAIImagePrompt(
-        bankEntry.rebusElements,
-        String(idea.headline),
-        bankEntry.imageDescription,
-      );
-
-      const imageDataUri = await generateImage({ prompt: imagePrompt, aspectRatio, model });
-
-      return NextResponse.json({
-        method: "ai",
-        puzzleType: "proverb-rebus",
-        imageDataUri,
-        headline: String(idea.headline),
-        caption: String(idea.caption),
-        imagePrompt,
-        answer: bankEntry.proverb,
-        meaning: bankEntry.meaning,
-      });
+      // count-items
+      idea = await genIdea(buildCountItemsPrompt(
+        customTopic,
+        Array.isArray(excludeSubjects) ? excludeSubjects : excludeSubject ? [excludeSubject] : [],
+        pickRandom(COUNT_COMPOSITIONS),
+        pickRandom(COUNT_SETTINGS),
+      ));
     }
 
     if (!idea.headline || !idea.imageDescription || !idea.caption) {
@@ -296,7 +289,10 @@ export async function POST(request: NextRequest) {
       String(idea.headline),
       String(idea.imageDescription),
       typeDef.label,
-      undefined,
+      {
+        artStyle: pickRandom(COUNT_ART_STYLES),
+        bannerStyle: pickRandom(COUNT_BANNER_STYLES)(String(idea.headline)),
+      },
     );
 
     const imageDataUri = await generateImage({

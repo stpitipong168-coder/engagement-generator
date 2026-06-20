@@ -43,26 +43,22 @@ export const PUZZLE_TYPES = [
     description: "โจทย์คำนวณที่ดูยาก แต่คิดได้ — ห้ามใช้เครื่องคิดเลข",
     method: "canvas" as const,
   },
-  {
-    id: "proverb-rebus",
-    label: "สำนวนไทย",
-    emoji: "📜",
-    description: "ปริศนารูปภาพ+พยัญชนะไทย — ถอดรหัสเป็นสำนวน",
-    method: "ai" as const,
-  },
 ] as const;
 
 export type PuzzleTypeId = (typeof PUZZLE_TYPES)[number]["id"];
 
 // Canvas puzzle data types (returned from API, rendered client-side)
+export type FindHiddenFormat = "find" | "count" | "different";
+
 export interface FindHiddenData {
   mainChar: string;
-  hiddenChar: string;
+  // Each hidden cell carries its own char so a grid can mix several odd values
+  // (needed for the "หาตัวที่ไม่ใช่" format). For find/count all chars are the same.
+  hidden: { r: number; c: number; char: string }[];
   rows: number;
   cols: number;
-  hiddenPositions: [number, number][];
   headline: string;
-  theme?: "sky" | "sunset" | "space" | "polkadots" | "stripes" | "chalkboard" | "graphpaper" | "neon" | "autumn" | "ocean";
+  theme?: "sky" | "sunset" | "space" | "polkadots" | "stripes" | "chalkboard" | "graphpaper" | "neon" | "autumn" | "ocean" | "bubbles" | "confetti" | "blueprint" | "hearts" | "honeycomb" | "notebook" | "wood" | "kraft" | "candy" | "mintdots" | "lavender";
 }
 
 export interface MathChallengeData {
@@ -168,17 +164,72 @@ export const FIND_HIDDEN_PAIRS: ReadonlyArray<{
   { mainChar: "O",  hiddenChar: "D",  headline: "หา D ให้เจอ" },
 ];
 
-// Caption templates — rotated randomly, no AI needed
-export const FIND_HIDDEN_CAPTIONS: ReadonlyArray<(h: string) => string> = [
-  (h) => `👀 มี ${h} ซ่อนอยู่ในภาพ หาเจอมั้ย? คอมเมนต์บอกเลย!`,
-  (h) => `🔍 สายตาดีไหม? หา ${h} ซ่อนอยู่ในกลุ่มให้เจอสิ! คอมเมนต์เฉลย`,
-  (h) => `👁️ ท้าทาย! หา ${h} ให้เจอ แล้ว comment บอก row กับ column นะ`,
-  (h) => `🧐 จะหาเจอมั้ย? มี ${h} ซ่อนแอบอยู่ในภาพ แชร์ถ้าหาเจอ!`,
-  (h) => `🎯 ตาเฉียบไหม? ลองหา ${h} สิ! คนแรกที่เจอ comment ได้เลย`,
-  (h) => `👀 มีแค่จุดเดียว! ${h} ซ่อนอยู่ไหน หาเจอแล้วบอก!`,
-  (h) => `🔎 ฝึกสมาธิ! หา ${h} ให้เจอในภาพ comment เฉลยได้เลย!`,
-  (h) => `🏆 ใครหาเจอก่อน? มี ${h} ซ่อนอยู่ในนี้ comment บอกตำแหน่ง!`,
+// 3-digit numbers for the "หาตัวที่ไม่ใช่ X" format — variants look similar but differ
+export const FIND_DIFFERENT_BANK: ReadonlyArray<{ main: string; variants: string[] }> = [
+  { main: "553", variants: ["535", "355", "533", "335"] },
+  { main: "717", variants: ["771", "177", "711"] },
+  { main: "808", variants: ["880", "088", "800"] },
+  { main: "696", variants: ["669", "966", "699"] },
+  { main: "121", variants: ["112", "211", "122"] },
+  { main: "858", variants: ["885", "588", "558"] },
+  { main: "343", variants: ["334", "433", "344"] },
+  { main: "626", variants: ["662", "266", "622"] },
+  { main: "989", variants: ["899", "998", "988"] },
+  { main: "474", variants: ["447", "744", "477"] },
 ];
+
+const pickOne = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)];
+
+// Headline phrasing varies per format so posts never look templated.
+export function buildFindHiddenHeadline(format: FindHiddenFormat, target: string): string {
+  if (format === "count") {
+    return pickOne([
+      `ในภาพมี ${target} กี่ตัว`,
+      `ในภาพมีตัว ${target} กี่ตัว`,
+      `นับ ${target} ได้กี่ตัว`,
+      `มี ${target} ทั้งหมดกี่ตัว`,
+    ]);
+  }
+  if (format === "different") {
+    return pickOne([
+      `หาตัวที่ไม่ใช่ ${target}`,
+      `หาเลขอื่นที่ไม่ใช่ ${target}`,
+      `ตัวไหนไม่ใช่ ${target}`,
+      `หาตัวแปลกปลอมที่ไม่ใช่ ${target}`,
+    ]);
+  }
+  return pickOne([
+    `หา ${target} ให้เจอ`,
+    `หา ${target} ให้เจออยู่ตรงไหน`,
+    `${target} ซ่อนอยู่ตรงไหน`,
+    `หาตัว ${target} ให้เจอ`,
+  ]);
+}
+
+export function buildFindHiddenCaption(format: FindHiddenFormat, target: string): string {
+  if (format === "count") {
+    return pickOne([
+      `🔢 ในภาพมี ${target} กี่ตัว? นับให้ดีแล้วคอมเมนต์เลย!`,
+      `👀 ลองนับสิ มี ${target} ทั้งหมดกี่ตัว? ตอบในคอมเมนต์!`,
+      `🧐 สายตาดีไหม? นับ ${target} ให้ครบแล้วบอกมาเลย!`,
+      `🎯 ใครนับ ${target} ได้ครบบ้าง? คอมเมนต์จำนวนเลย!`,
+    ]);
+  }
+  if (format === "different") {
+    return pickOne([
+      `🔍 มีตัวที่ไม่ใช่ ${target} ซ่อนอยู่! หาให้เจอแล้วคอมเมนต์!`,
+      `👁️ ตาเฉียบไหม? หาตัวที่ไม่ใช่ ${target} ในภาพให้เจอ!`,
+      `🧐 ในภาพมีตัวแปลกปลอมที่ไม่ใช่ ${target} หาเจอไหม คอมเมนต์เลย!`,
+      `🎯 หาเลขอื่นที่ไม่ใช่ ${target} ให้เจอ คอมเมนต์ตำแหน่งเลย!`,
+    ]);
+  }
+  return pickOne([
+    `👀 มี ${target} ซ่อนอยู่ในภาพ หาเจอมั้ย? คอมเมนต์บอกเลย!`,
+    `🔍 สายตาดีไหม? หา ${target} ในกลุ่มให้เจอสิ! คอมเมนต์เฉลย`,
+    `🧐 จะหาเจอมั้ย? ${target} ซ่อนแอบอยู่ในภาพ แชร์ถ้าหาเจอ!`,
+    `🏆 ใครหาเจอก่อน? มี ${target} ซ่อนอยู่ในนี้ คอมเมนต์ตำแหน่ง!`,
+  ]);
+}
 
 // Rotating category pool so each generation is nudged toward a different theme
 // instead of always landing on popular food words.
@@ -267,11 +318,55 @@ ${topicLine}${excludeLine}
 ก่อนตอบ: (1) นับพยางค์ใน syllableList — ต้องได้ ${syllableCount} พยางค์พอดี (2) ตรวจว่า rebusElements ทุกตัวเป็น type "image" เท่านั้น`;
 }
 
-export function buildCountItemsPrompt(customTopic?: string, excludeSubject?: string): string {
+// ===== COUNT-ITEMS variety pools — rotated so images never look the same =====
+export const COUNT_ART_STYLES: readonly string[] = [
+  "high-quality photorealistic photography, natural lighting",
+  "cute glossy 3D render (Pixar / Blender style)",
+  "hand-drawn cartoon illustration with bold clean outlines and flat vivid colours",
+  "soft dreamy watercolour painting",
+  "detailed colored-pencil storybook illustration",
+  "vintage black-ink line engraving / etching on warm parchment",
+  "rich oil painting with visible brush strokes",
+  "kawaii glossy sticker art with subtle outlines",
+];
+
+export const COUNT_COMPOSITIONS: readonly string[] = [
+  "scattered naturally throughout a detailed scene, several partially hidden behind furniture or plants, a few overlapping",
+  "stacked into a tall cuddly pyramid pile, climbing on top of one another, with one or two tiny babies tucked between them",
+  "arranged in a tidy 3x3 grid of separate spots, where a couple of the spots secretly include a small baby half-hidden behind the adult",
+  "clustered tightly into one big group hug in the centre, with small ones peeking out between the bigger ones",
+  "a clever symmetric / mirror-image arrangement that makes it genuinely hard to tell how many there really are",
+  "spread across a colourful patterned background (a flower field, starry sky or garden) with a few cleverly camouflaged to blend in",
+];
+
+export const COUNT_SETTINGS: readonly string[] = [
+  "a cozy living room", "a sunny flower garden", "a rustic farm with hay",
+  "a green forest clearing", "a tidy kitchen", "a child's bedroom",
+  "a city park", "a sandy beach", "a clean pastel studio backdrop",
+];
+
+export const COUNT_BANNER_STYLES: ReadonlyArray<(h: string) => string> = [
+  (h) => `A full-width horizontal banner at the VERY TOP (top 12%), solid dark maroon (#6B0000→#8B1515), centred bold WHITE Thai text reading EXACTLY: "${h}". Banner fully visible edge to edge.`,
+  (h) => `A decorative RED RIBBON banner at the BOTTOM of the image (bottom 14%), shaped like a curved award ribbon with folded ends, centred bold WHITE Thai text reading EXACTLY: "${h}". The scene fills the area above it.`,
+  (h) => `NO banner box. At the VERY TOP, large bold Thai text with a soft white outline so it stays readable on any background — render EXACTLY: "${h}" (up to two centred lines).`,
+  (h) => `A centred rounded-rectangle RED pill banner near the TOP (about top 14%), glossy maroon (#8B0000) with rounded ends, centred bold WHITE Thai text reading EXACTLY: "${h}".`,
+];
+
+export function buildCountItemsPrompt(
+  customTopic?: string,
+  excludeSubjects?: string[],
+  composition?: string,
+  setting?: string,
+): string {
   const topicLine = customTopic
     ? `สัตว์/วัตถุที่กำหนด: "${customTopic}"`
-    : "เลือกสัตว์หรือวัตถุที่น่าสนใจ เช่น แมวดำ, สุนัข, นก, ดอกไม้";
-  const excludeLine = excludeSubject ? `\n⚠️ ห้ามใช้ "${excludeSubject}" — เพิ่งใช้ไปแล้ว เลือกอันใหม่` : "";
+    : "เลือกสัตว์หรือวัตถุที่น่าสนใจและหลากหลาย เช่น แมว สุนัข ลูกหมู เป็ด กระต่าย นกแก้ว ม้า ลูกเป็ด แกะ";
+  const recent = (excludeSubjects ?? []).filter(Boolean);
+  const excludeLine = recent.length
+    ? `\n⚠️ ห้ามใช้สิ่งเหล่านี้ (เพิ่งใช้ไปแล้ว) เลือกอันใหม่ที่ต่าง: ${recent.map((w) => `"${w}"`).join(", ")}`
+    : "";
+  const comp = composition ?? COUNT_COMPOSITIONS[0];
+  const scn = setting ?? COUNT_SETTINGS[0];
 
   return `สร้างโจทย์ "นับ X กี่ตัว" สำหรับ Facebook engagement
 ${FB_SAFE_RULE}
@@ -281,14 +376,17 @@ ${topicLine}${excludeLine}
 กฎสำคัญ:
 - จำนวนต้องทำให้นับยาก (7-15 ตัว)
 - บางตัวซ่อนอยู่ บางตัวซ้อนทับกัน บางตัวมีขนาดเล็ก
-- สร้างความสงสัย เช่น ฉันเห็น X ตัว คุณเห็นกี่ตัว?
+- imageDescription ต้องอิงองค์ประกอบและฉากที่กำหนดให้รอบนี้ (เพื่อให้ภาพไม่ซ้ำเดิม)
+
+องค์ประกอบภาพรอบนี้ (composition): ${comp}
+ฉากรอบนี้ (setting): ${scn}
 
 ตอบ JSON เท่านั้น ห้ามมีข้อความอื่น:
 {
   "subject": "สิ่งที่ต้องนับ (ภาษาไทย)",
   "count": จำนวนจริงในภาพ,
-  "headline": "ในภาพมี[subject]กี่ตัว หรือ คุณเห็น[subject]กี่ตัว",
-  "imageDescription": "อธิบายภาพ ภาษาอังกฤษ: [subject]จำนวน [count] ตัว บางตัวซ่อนในฉาก บางตัวซ้อนทับ ฉากสวยงาม",
+  "headline": "เลือกสุ่ม 1 แบบ: 'ในภาพมี[subject]กี่ตัว' / 'คุณเห็น[subject]กี่ตัว?' / 'ฉันเห็น[subject] [count] ตัว คุณเห็นกี่ตัว?' / 'นับ[subject]ให้หน่อย มีกี่ตัว?'",
+  "imageDescription": "อธิบายภาพ ภาษาอังกฤษ: [count] [subject] arranged as — ${comp} — set in ${scn}. Some partially hidden, some overlapping, varied sizes.",
   "caption": "แคปชั่น Facebook ชวนนับแล้วคอมเมนต์ ไม่บอกคำตอบ (มี emoji)"
 }`;
 }
@@ -424,6 +522,43 @@ export const PROVERB_BANK: Array<{
     ],
     imageDescription: "dark dramatic background with scattered glowing gold coins and jewels",
   },
+];
+
+// Object → emoji for the canvas-rendered proverb rebus. The object name implies a
+// Thai word whose FIRST consonant is the decoded letter (e.g. frog=กบ→ก).
+export const OBJECT_EMOJI: Record<string, string> = {
+  "frog": "🐸",          // กบ → ก
+  "rooster": "🐓",        // ไก่ → ก
+  "lotus flower": "🪷",   // บัว → บ
+  "mouse": "🐭",          // หนู → น
+  "monkey": "🐒",         // ลิง → ล
+  "star": "⭐",           // ดาว → ด
+  "tiger": "🐅",          // เสือ → ส
+  "snake": "🐍",          // งู → ง
+  "buffalo": "🐃",        // ควาย → ค
+  "horse": "🐴",          // ม้า → ม
+  "pig": "🐷",            // หมู → ห
+  "giant demon": "👹",    // ยักษ์ → ย
+  "fish": "🐟",           // ปลา → ป
+  "mountain": "⛰️",       // ภูเขา → ภ
+  "turtle": "🐢",         // เต่า → ต
+};
+
+// Rotating banner hooks + captions for proverb-rebus (no answer revealed)
+export const PROVERB_HOOKS: readonly string[] = [
+  "ทายสำนวนจากภาพ",
+  "ภาพนี้คือสำนวนอะไร",
+  "ถอดรหัสเป็นสำนวนไทย",
+  "สำนวนนี้คืออะไรเอ่ย",
+  "เก่งไทยช่วยทายที!",
+];
+
+export const PROVERB_CAPTIONS: readonly string[] = [
+  "🧩 ภาพนี้ซ่อนสำนวนไทยอะไร? ถอดรหัสแล้วคอมเมนต์เลย!",
+  "🤔 ทายสำนวนจากภาพให้ออก! ใครรู้คอมเมนต์เลย",
+  "📜 รูปพวกนี้รวมเป็นสำนวนไทยว่าอะไร? ตอบในคอมเมนต์!",
+  "🎯 ใครเก่งภาษาไทย? ถอดรหัสภาพนี้เป็นสำนวนให้หน่อย!",
+  "👀 อ่านภาพออกไหม? นี่คือสำนวนไทยสุดฮิต ทายเลย!",
 ];
 
 export function buildProverbRebusPrompt(customTopic?: string, excludeProverb?: string): string {
@@ -576,11 +711,97 @@ ELEMENT RULES:
 ${FB_SAFE_RULE}`;
 }
 
+// ===== WORD REBUS ("คำนี้คือคำว่าอะไร") — AI photorealistic, matches owner's examples =====
+export const WORD_REBUS_TITLES: readonly string[] = [
+  "คำนี้คือคำว่าอะไร",
+  "คำนี้คือคำว่า",
+  "ทายคำจากภาพ",
+];
+
+export const WORD_REBUS_SCENES: readonly string[] = [
+  "a deep night sky with a glowing full moon and scattered stars above a vast sea of soft moonlit clouds",
+  "a sheet of vintage cream-coloured lined notebook paper",
+  "old aged parchment paper with wooden railway tracks running along the bottom edge",
+  "a dramatic overcast rainy sky over a misty river and distant mountains",
+  "warm cream paper with a soft golden radial glow in the centre",
+  "a serene golden Thai temple courtyard at dusk with soft bokeh lights",
+];
+
+export const WORD_REBUS_BANNERS: ReadonlyArray<(title: string) => string> = [
+  (t) => `A full-width solid DARK MAROON banner (#6B0000→#8B1010) across the very top (top 14%), centred heavy-bold WHITE Thai text with a subtle dark outline reading EXACTLY: "${t}".`,
+  (t) => `A glossy RED SATIN RIBBON banner draped across the top with folded ends and fabric sheen, centred heavy-bold Thai text in a WHITE-to-GOLD gradient reading EXACTLY: "${t}".`,
+  (t) => `A full-width RED banner across the top decorated with golden Thai ornamental patterns (ลายไทย) on both sides, centred heavy-bold WHITE Thai text reading EXACTLY: "${t}".`,
+];
+
+// Photorealistic example-matching prompt: AI draws objects + floating Thai glyphs + banner + scene.
+export function buildWordRebusImagePrompt(
+  rebusElements: RebusElement[],
+  title: string,
+  bannerStyle: string,
+  scene: string,
+): string {
+  const n = rebusElements.length;
+  const seq = rebusElements
+    .map((el, i) =>
+      el.type === "image"
+        ? `  ${i + 1}. a PHOTOREALISTIC cut-out illustration of ${el.object} (full colour, no text label)`
+        : `  ${i + 1}. the Thai glyph "${el.char}" — ${describeCharElement(el.char ?? "")}`,
+    )
+    .join("\n");
+  const rowRule = n > 6 ? "split evenly into TWO horizontal rows" : "all in ONE horizontal row";
+
+  return `Create a high-quality Thai "guess the word" rebus puzzle image for Facebook.
+${FB_SAFE_RULE}
+
+BANNER (draw first, fully visible, correct Thai spelling):
+${bannerStyle}
+
+BACKGROUND SCENE (fills the whole image behind everything):
+${scene}
+
+PUZZLE ELEMENTS — read LEFT to RIGHT in this EXACT order, ${rowRule}:
+${seq}
+
+STRICT RULES:
+- Object illustrations: photorealistic, richly detailed, full colour, cleanly cut out with a soft natural drop shadow, slightly varied sizes, floating directly on the background scene — NO white boxes, NO cards, NO name labels.
+- Thai glyphs: render the EXACT character shown, very large and bold. On dark scenes use WHITE glyphs with a black outline; on light scenes use solid BLACK glyphs. NEVER add an extra/phantom Thai consonant beside a vowel or tone mark.
+- Even spacing between every element; elements vertically centred in the area below the banner.
+- Only the banner title and these puzzle glyphs may contain text — no other words, captions, or watermarks.
+- Square 1:1 composition, premium and eye-catching.
+
+${FB_SAFE_RULE}`;
+}
+
+// Reference map so the text model can decompose a custom word into objects + Thai marks.
+const REBUS_OBJECT_HINTS = `ก: rooster(ไก่)/frog(กบ) | ข: egg(ไข่) | ค: buffalo(ควาย) | ง: snake(งู) | จ: plate(จาน) | ช: elephant(ช้าง) | ด: star(ดาว) | ต: turtle(เต่า) | ท: soldier(ทหาร) | น: mouse(หนู)/bird(นก) | บ: lotus(บัว)/house(บ้าน) | ป: fish(ปลา) | ผ: bee(ผึ้ง) | ฝ: rain cloud(ฝน) | พ: golden offering tray พาน/fan(พัด) | ฟ: teeth(ฟัน) | ม: horse(ม้า) | ย: giant yaksha demon(ยักษ์) | ร: boat(เรือ) | ล: monkey(ลิง) | ส: tiger(เสือ) | ห: pig(หมู)/dog(หมา)/bear(หมี) | อ: large jar โอ่ง | ภ: mountain(ภูเขา) | จ: plate(จาน)`;
+
+// Text-model prompt: break a Thai word into ordered rebus elements (objects + standalone Thai marks)
+export function buildWordRebusIdeaPrompt(customWord: string): string {
+  return `คุณเป็นผู้เชี่ยวชาญปริศนาอักษรไทย แตกคำว่า "${customWord}" ออกเป็น "rebus" สำหรับเกมทายคำ
+${FB_SAFE_RULE}
+
+วิธีคิด: ไล่ทีละพยัญชนะ/สระของคำ
+⚠️ กฎเหล็ก:
+- พยัญชนะทุกตัว → ต้องเป็น type "image" (วัตถุที่ชื่อขึ้นต้นด้วยพยัญชนะนั้น) เท่านั้น ห้ามใส่พยัญชนะเป็น type "char" เด็ดขาด
+- type "char" → ใช้ได้เฉพาะ สระลอยตัว (า ะ เ แ โ ใ ไ อ) เท่านั้น ห้ามใส่ ิ ี ึ ั ็ ่ ้ (AI วาดไม่ได้)
+- ถ้าพยัญชนะไหนหาวัตถุยาก ก็ยังต้องเลือกวัตถุจากแผนที่ด้านล่างให้ได้ ห้ามข้ามและห้ามใช้ char แทน
+- ห้ามใช้วัตถุที่เป็นตัวคำตอบเอง (เช่น คำว่า "เสือ" ห้ามใช้รูปเสือ)
+- ถ้าคำมีวรรณยุกต์/สระลอยซับซ้อนที่วาดไม่ได้ ให้ตอบ {"rebusElements": []} เพื่อบอกว่าทำคำนี้ไม่ได้
+
+แผนที่วัตถุ→พยัญชนะ (เลือกใช้ได้): ${REBUS_OBJECT_HINTS}
+
+ตอบ JSON เท่านั้น:
+{
+  "targetWord": "${customWord}",
+  "rebusElements": [ {"type":"image","object":"english object name"} หรือ {"type":"char","char":"สระ/วรรณยุกต์ไทยตัวเดียว"} ... เรียงซ้ายไปขวา ],
+  "caption": "แคปชั่น Facebook ชวนทายคำ ไม่เฉลย (มี emoji)"
+}`;
+}
+
 export interface ProverbRebusCanvasData {
-  backgroundImageDataUri: string;
   rebusElements: RebusElement[];
   headline: string;
-  cols: number;
+  theme?: string;
 }
 
 // Background-only image prompt — AI draws objects, canvas draws Thai chars + banner
@@ -680,8 +901,13 @@ export function buildAIPuzzleImagePrompt(
   headline: string,
   imageDescription: string,
   puzzleLabel: string,
-  rebusElements?: RebusElement[],
+  opts?: { rebusElements?: RebusElement[]; artStyle?: string; bannerStyle?: string },
 ): string {
+  const rebusElements = opts?.rebusElements;
+  const artStyle = opts?.artStyle ?? "high-quality photorealistic illustration";
+  const bannerInstruction =
+    opts?.bannerStyle ??
+    `A full-width horizontal banner at the VERY TOP (top 12%), solid dark maroon (#6B0000→#8B1515), centred bold WHITE Thai text reading EXACTLY: "${headline}". Banner fully visible edge to edge.`;
   // Build explicit element-by-element instruction for rebus types
   let rebusInstruction = "";
   if (rebusElements && rebusElements.length > 0) {
@@ -704,32 +930,27 @@ CRITICAL RULES FOR ELEMENTS:
 - Spacing between elements must be even and clear`;
   }
 
-  return `Create a Thai Facebook engagement puzzle image. Style: high-quality photorealistic illustration.
+  return `Create a Thai Facebook engagement puzzle image. Visual style: ${artStyle}.
 
 PUZZLE TYPE: ${puzzleLabel}
 
-BANNER DESIGN (MANDATORY — draw this first, before anything else):
-- A full-width horizontal banner must appear at the VERY TOP of the image spanning edge to edge
-- The banner occupies the top 12% of the image height
-- Background: solid dark maroon (#6B0000 to #8B1515) — no gaps, no missing corners
-- Text inside banner: centered, medium-bold white Thai font — write EXACTLY this text: "${headline}"
-- This banner MUST be present and fully visible. If space is tight, shrink the puzzle elements — never shrink or remove the banner.
+BANNER / TITLE (MANDATORY — render first, fully visible, correct Thai spelling):
+${bannerInstruction}
 
-PUZZLE CONTENT (the remaining 88% below the banner):
+PUZZLE CONTENT:
 ${imageDescription}
 ${rebusInstruction}
 
 REQUIREMENTS:
 - Square 1:1 composition
-- All Thai letters/consonants/vowels in the content area must be rendered as crisp readable text
-- No extra captions, watermarks, or decorative text beyond the banner headline
-- High visual quality — engaging enough to make people stop scrolling
+- Make it genuinely fun and a little tricky — some items overlapping, partially hidden, or varied in size
+- Any Thai text must be crisp and correctly spelled
+- No extra captions, watermarks, or stray text beyond the title above
+- High visual quality — eye-catching enough to stop the scroll
 
-BACKGROUND RULES (CRITICAL):
-- NO white boxes, white panels, white cards, or white rectangular backgrounds anywhere in the image
-- NO drop-shadow boxes or framed containers around elements
-- All illustrated objects and Thai letter characters must float DIRECTLY on the thematic background scene — no separate overlay panel
-- The thematic background (landscape, kitchen, forest, etc.) fills the entire content area below the banner
+BACKGROUND RULES:
+- Do NOT put white cards / drop-shadow boxes / framed panels behind individual items
+- The background may be a full thematic scene OR a clean solid/pastel colour, whichever suits the composition — but it must look intentional and tidy, never a plain white void with floating boxes
 
 ${FB_SAFE_RULE}
 ADDITIONALLY FOR IMAGE GENERATION:
