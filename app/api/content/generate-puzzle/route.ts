@@ -182,25 +182,25 @@ export async function POST(request: NextRequest) {
 
     // ===== AI IMAGE TYPES =====
 
-    let ideaPrompt: string;
+    const genIdea = async (prompt: string) =>
+      parseJSON(await chatCompletion([{ role: "user", content: prompt }], { temperature: 0.9, maxTokens: 1024 }));
+
+    let idea: Record<string, unknown>;
     if (puzzleType === "rebus-word") {
-      ideaPrompt = buildRebusWordPrompt(
-        syllableCount,
-        customTopic,
-        Array.isArray(excludeWords) ? excludeWords : excludeWord ? [excludeWord] : [],
-      );
+      const excluded = Array.isArray(excludeWords) ? [...excludeWords] : excludeWord ? [excludeWord] : [];
+      // AI sometimes miscounts syllables — retry (rotating category) before giving up
+      let attempt = 0;
+      do {
+        idea = await genIdea(buildRebusWordPrompt(syllableCount, customTopic, excluded));
+        const list = Array.isArray(idea.syllableList) ? idea.syllableList : [];
+        if (list.length === syllableCount) break;
+        if (idea.targetWord) excluded.push(String(idea.targetWord)); // avoid the bad word next try
+      } while (++attempt < 3);
     } else if (puzzleType === "count-items") {
-      ideaPrompt = buildCountItemsPrompt(customTopic, excludeSubject);
+      idea = await genIdea(buildCountItemsPrompt(customTopic, excludeSubject));
     } else {
-      ideaPrompt = buildProverbRebusPrompt(customTopic, excludeProverb);
+      idea = await genIdea(buildProverbRebusPrompt(customTopic, excludeProverb));
     }
-
-    const ideaRaw = await chatCompletion(
-      [{ role: "user", content: ideaPrompt }],
-      { temperature: 0.9, maxTokens: 1024 },
-    );
-
-    const idea = parseJSON(ideaRaw);
 
     // ===== PROVERB-REBUS: pure AI all-in-one (standalone chars only in bank) =====
     if (puzzleType === "proverb-rebus") {
