@@ -180,11 +180,30 @@ export const FIND_HIDDEN_CAPTIONS: ReadonlyArray<(h: string) => string> = [
   (h) => `🏆 ใครหาเจอก่อน? มี ${h} ซ่อนอยู่ในนี้ comment บอกตำแหน่ง!`,
 ];
 
-export function buildRebusWordPrompt(syllableCount: number, customTopic?: string, excludeWord?: string): string {
+// Rotating category pool so each generation is nudged toward a different theme
+// instead of always landing on popular food words.
+const REBUS_WORD_CATEGORIES: readonly string[] = [
+  "อาหารคาว (เช่น ผัดไทย กุ้งเผา)",
+  "ขนม/ของหวาน (เช่น ขนมครก ทองหยอด)",
+  "ผลไม้ (เช่น มะม่วง น้อยหน่า)",
+  "สัตว์ (เช่น เสือดาว ช้างน้อย)",
+  "ของใช้ในบ้าน (เช่น พัดลม ไม้กวาด)",
+  "สถานที่/ธรรมชาติ (เช่น น้ำตก ภูเขา)",
+  "อาชีพ (เช่น ชาวนา หมอฟัน)",
+  "เครื่องครัว (เช่น กระทะ ตะหลิว)",
+  "เครื่องแต่งกาย (เช่น หมวกฟาง รองเท้า)",
+  "ผัก (เช่น ผักบุ้ง แตงกวา)",
+];
+
+export function buildRebusWordPrompt(syllableCount: number, customTopic?: string, excludeWords?: string[]): string {
+  const category = REBUS_WORD_CATEGORIES[Math.floor(Math.random() * REBUS_WORD_CATEGORIES.length)];
   const topicLine = customTopic
     ? `หมวดคำที่กำหนด: "${customTopic}"`
-    : "เลือกคำที่คนไทยทั่วไปรู้จัก เช่น อาหาร สัตว์ ของใช้ในบ้าน";
-  const excludeLine = excludeWord ? `\n⚠️ ห้ามใช้คำว่า "${excludeWord}" — เพิ่งใช้ไปแล้ว เลือกคำใหม่` : "";
+    : `หมวดคำรอบนี้: ${category} — เลือกคำในแนวนี้ที่คนไทยทั่วไปรู้จัก`;
+  const recent = (excludeWords ?? []).filter(Boolean);
+  const excludeLine = recent.length
+    ? `\n⚠️ ห้ามใช้คำเหล่านี้ (เพิ่งใช้ไปแล้ว) ให้คิดคำใหม่ที่แตกต่าง: ${recent.map((w) => `"${w}"`).join(", ")}`
+    : "";
 
   const syllableExamples: Record<number, { ok: string[]; wrong: string[] }> = {
     2: {
@@ -218,7 +237,7 @@ ${FB_SAFE_RULE}
 1. คำที่เลือกต้องมีพยางค์ครบ ${syllableCount} พยางค์เท่านั้น — นับก่อนตอบเสมอ
 2. ทุกพยางค์ต้องใช้ type "image" เท่านั้น — ห้ามใช้ type "char" เด็ดขาด ต้องหาวัตถุแทนทุกพยางค์
 
-ตัวอย่างคำ ${syllableCount} พยางค์ที่ถูก: ${ex.ok.join(", ")}
+ตัวอย่างคำ ${syllableCount} พยางค์ที่ถูก (ดู "วิธีนับพยางค์" เท่านั้น ⚠️ ห้ามตอบซ้ำกับตัวอย่างเหล่านี้ ต้องคิดคำใหม่): ${ex.ok.join(", ")}
 ตัวอย่างที่ผิด (ห้ามใช้): ${ex.wrong.join(", ")}
 
 วิธีแทนพยางค์ด้วยรูปวัตถุ — คิดจากเสียง:

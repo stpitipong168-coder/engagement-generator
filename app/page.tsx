@@ -51,7 +51,7 @@ export default function HomePage() {
         const ls = localStorage;
         const excludeProverb   = data.puzzleType === "proverb-rebus" ? (ls.getItem("lastProverb") ?? undefined) : undefined;
         const excludeFindPair  = data.puzzleType === "find-hidden"   ? (ls.getItem("lastFindPair") ?? undefined) : undefined;
-        const excludeWord      = data.puzzleType === "rebus-word"    ? (ls.getItem("lastRebusWord") ?? undefined) : undefined;
+        const excludeWords     = data.puzzleType === "rebus-word"    ? (JSON.parse(ls.getItem("rebusWordHistory") ?? "[]") as string[]) : [];
         const excludeSubject   = data.puzzleType === "count-items"   ? (ls.getItem("lastCountSubject") ?? undefined) : undefined;
         const excludeEquation  = data.puzzleType === "math-challenge" ? (ls.getItem("lastMathEq") ?? undefined) : undefined;
 
@@ -64,7 +64,7 @@ export default function HomePage() {
             aspectRatio: "1:1",
             ...(excludeProverb  ? { excludeProverb }  : {}),
             ...(excludeFindPair ? { excludeFindPair }  : {}),
-            ...(excludeWord     ? { excludeWord }      : {}),
+            ...(excludeWords.length ? { excludeWords }  : {}),
             ...(excludeSubject  ? { excludeSubject }   : {}),
             ...(excludeEquation ? { excludeEquation }  : {}),
           }),
@@ -80,7 +80,11 @@ export default function HomePage() {
         setEditedCaption(r.caption);
         if (r.puzzleType === "proverb-rebus" && r.answer)  localStorage.setItem("lastProverb", String(r.answer));
         if (r.puzzleType === "find-hidden"   && r.canvasData) localStorage.setItem("lastFindPair", (r.canvasData as {mainChar:string}).mainChar);
-        if (r.puzzleType === "rebus-word"    && r.answer)  localStorage.setItem("lastRebusWord", String(r.answer));
+        if (r.puzzleType === "rebus-word"    && r.answer) {
+          const hist = (JSON.parse(localStorage.getItem("rebusWordHistory") ?? "[]") as string[]).filter((w) => w !== String(r.answer));
+          hist.push(String(r.answer));
+          localStorage.setItem("rebusWordHistory", JSON.stringify(hist.slice(-15)));
+        }
         if (r.puzzleType === "count-items"   && r.answer !== undefined) localStorage.setItem("lastCountSubject", String((r as {subject?: string}).subject ?? r.answer));
         if (r.puzzleType === "math-challenge" && r.canvasData) localStorage.setItem("lastMathEq", (r.canvasData as {equation:string}).equation);
 
@@ -177,6 +181,9 @@ export default function HomePage() {
                   </button>
                 ))}
               </div>
+              <p className="px-4 pb-3 text-[11px] text-muted-foreground/70">
+                * ทายภาพ X พยางค์ ใช้ Nano Banana 2 เสมอ
+              </p>
             </CardContent>
           </Card>
 

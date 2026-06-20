@@ -105,6 +105,7 @@ export async function POST(request: NextRequest) {
       excludeProverb,
       excludeFindPair,
       excludeWord,
+      excludeWords,
       excludeSubject,
       excludeEquation,
     } = body;
@@ -183,7 +184,11 @@ export async function POST(request: NextRequest) {
 
     let ideaPrompt: string;
     if (puzzleType === "rebus-word") {
-      ideaPrompt = buildRebusWordPrompt(syllableCount, customTopic, excludeWord);
+      ideaPrompt = buildRebusWordPrompt(
+        syllableCount,
+        customTopic,
+        Array.isArray(excludeWords) ? excludeWords : excludeWord ? [excludeWord] : [],
+      );
     } else if (puzzleType === "count-items") {
       ideaPrompt = buildCountItemsPrompt(customTopic, excludeSubject);
     } else {
@@ -268,7 +273,12 @@ export async function POST(request: NextRequest) {
         bannerStyle,
       );
 
-      const imageDataUri = await generateImage({ prompt: imagePrompt, aspectRatio, model });
+      // ทายภาพ X พยางค์ always uses Nano Banana 2 (per owner's request)
+      const imageDataUri = await generateImage({
+        prompt: imagePrompt,
+        aspectRatio,
+        model: "google/gemini-3.1-flash-image-preview",
+      });
 
       return NextResponse.json({
         method: "ai",
