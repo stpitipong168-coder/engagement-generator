@@ -411,15 +411,122 @@ function drawVignette(ctx: CanvasRenderingContext2D, edge: string): void {
   ctx.fillRect(0, 0, SIZE, SIZE);
 }
 
-export function generateMathChallengeImage(data: MathChallengeData): string {
+// Colourful decorations near the edges so the fast/canvas backgrounds don't look plain.
+// Kept to corners/margins so they never clash with the centred equation.
+function drawMathDecor(ctx: CanvasRenderingContext2D, theme: MathTheme): void {
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  switch (theme.style) {
+    case "notebook": {
+      // Spiral binding rings down the left edge
+      for (let y = 130; y < SIZE - 70; y += 104) {
+        ctx.strokeStyle = "rgba(150,150,160,0.85)";
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.arc(58, y, 17, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.font = "84px " + FONT_FAMILY;
+      ctx.fillText("✏️", SIZE - 96, SIZE - 92);
+      break;
+    }
+    case "wood": {
+      // Brass screws in the four corners
+      for (const [sx, sy] of [[64, 64], [SIZE - 64, 64], [64, SIZE - 64], [SIZE - 64, SIZE - 64]]) {
+        ctx.fillStyle = "rgba(70,46,22,0.9)";
+        ctx.beginPath(); ctx.arc(sx, sy, 16, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "rgba(255,225,170,0.5)";
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(sx - 10, sy - 10); ctx.lineTo(sx + 10, sy + 10); ctx.stroke();
+      }
+      break;
+    }
+    case "chalkboard": {
+      // Warm wooden frame + little chalk doodles in the corners
+      ctx.strokeStyle = "rgba(120,78,40,0.95)";
+      ctx.lineWidth = 30;
+      ctx.strokeRect(15, 15, SIZE - 30, SIZE - 30);
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.font = "62px " + FONT_FAMILY;
+      ctx.fillText("➗", 96, 120);
+      ctx.fillText("✓", SIZE - 96, 120);
+      ctx.fillText("➕", 96, SIZE - 110);
+      ctx.font = "84px " + FONT_FAMILY;
+      ctx.fillText("🍎", SIZE - 110, SIZE - 110);
+      break;
+    }
+    case "vintage": {
+      // Ornate flourishes in the corners
+      ctx.fillStyle = "rgba(150,52,40,0.85)";
+      ctx.font = "70px " + FONT_FAMILY;
+      ctx.fillText("❦", 92, 116);
+      ctx.fillText("❦", SIZE - 92, 116);
+      ctx.fillText("❦", 92, SIZE - 104);
+      ctx.fillText("❦", SIZE - 92, SIZE - 104);
+      break;
+    }
+    case "graph": {
+      // Yellow sticky note in the top-right corner
+      ctx.save();
+      ctx.translate(SIZE - 130, 150);
+      ctx.rotate(0.12);
+      ctx.shadowColor = "rgba(0,0,0,0.2)";
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = "#FFE680";
+      ctx.fillRect(-70, -70, 140, 140);
+      ctx.restore();
+      ctx.font = "70px " + FONT_FAMILY;
+      ctx.fillText("📌", 110, 120);
+      break;
+    }
+    case "kraft": {
+      // Washi-tape strips taping the corners
+      for (const [tx, ty, rot, col] of [
+        [120, 70, -0.5, "rgba(90,180,200,0.55)"],
+        [SIZE - 120, SIZE - 70, -0.5, "rgba(230,120,150,0.55)"],
+      ] as [number, number, number, string][]) {
+        ctx.save();
+        ctx.translate(tx, ty);
+        ctx.rotate(rot);
+        ctx.fillStyle = col;
+        ctx.fillRect(-90, -26, 180, 52);
+        ctx.restore();
+      }
+      ctx.font = "62px " + FONT_FAMILY;
+      ctx.fillText("📌", SIZE - 90, 100);
+      break;
+    }
+  }
+  ctx.restore();
+}
+
+// Loads a data-URI image into the canvas context (full-bleed).
+function drawImageCover(ctx: CanvasRenderingContext2D, src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => { ctx.drawImage(img, 0, 0, SIZE, SIZE); resolve(); };
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+export async function generateMathChallengeImage(data: MathChallengeData): Promise<string> {
   const canvas = document.createElement("canvas");
   canvas.width = SIZE;
   canvas.height = SIZE;
   const ctx = canvas.getContext("2d")!;
 
   const theme = MATH_THEMES[data.theme ?? "notebook"] ?? MATH_THEMES.notebook;
+  const aiMode = !!data.backgroundImageDataUri;
 
-  drawMathBackground(ctx, theme);
+  if (aiMode) {
+    await drawImageCover(ctx, data.backgroundImageDataUri!);
+  } else {
+    drawMathBackground(ctx, theme);
+    drawMathDecor(ctx, theme);
+  }
 
   // Top banner = catchy hook (varies each generation)
   drawBanner(ctx, data.headline);
@@ -432,9 +539,25 @@ export function generateMathChallengeImage(data: MathChallengeData): string {
   const eqY = SIZE * 0.47;
   const eqFontSize = Math.max(46, Math.min(112, Math.floor((SIZE - 160) / (eqText.length * 0.52))));
 
+  // On AI scenes the colours are unknown, so use universal white/gold text with
+  // a dark plate + outline; on canvas themes use the matched theme colours.
+  const eqColor = aiMode ? "#FFFFFF" : theme.eqColor;
+  const subColor = aiMode ? "#FFE066" : theme.subColor;
+  const dividerColor = aiMode ? "rgba(255,255,255,0.55)" : theme.dividerColor;
+  const shadowColor = aiMode ? "rgba(0,0,0,0.9)" : theme.shadow;
+
+  if (aiMode) {
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,0.36)";
+    ctx.beginPath();
+    ctx.roundRect(SIZE * 0.09, eqY - 155, SIZE * 0.82, 330, 28);
+    ctx.fill();
+    ctx.restore();
+  }
+
   // Framing lines above and below the equation (engraved look)
   const frameW = SIZE * 0.66;
-  ctx.strokeStyle = theme.dividerColor;
+  ctx.strokeStyle = dividerColor;
   ctx.lineWidth = 3;
   for (const dy of [-(eqFontSize * 0.78), eqFontSize * 0.78]) {
     ctx.beginPath();
@@ -444,16 +567,22 @@ export function generateMathChallengeImage(data: MathChallengeData): string {
   }
 
   ctx.save();
-  ctx.shadowColor = theme.shadow;
-  ctx.shadowBlur = 10;
-  ctx.fillStyle = theme.eqColor;
+  ctx.shadowColor = shadowColor;
+  ctx.shadowBlur = aiMode ? 16 : 10;
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "rgba(0,0,0,0.8)";
+
+  ctx.fillStyle = eqColor;
   ctx.font = `bold ${eqFontSize}px ${FONT_FAMILY}`;
+  if (aiMode) { ctx.lineWidth = 9; ctx.strokeText(eqText, SIZE / 2, eqY); }
   ctx.fillText(eqText, SIZE / 2, eqY);
 
   // Challenge sub-line (varies each generation)
-  ctx.fillStyle = theme.subColor;
+  const subStr = data.subText ?? "ห้ามใช้เครื่องคิดเลข";
+  ctx.fillStyle = subColor;
   ctx.font = `bold 60px ${FONT_FAMILY}`;
-  ctx.fillText(data.subText ?? "ห้ามใช้เครื่องคิดเลข", SIZE / 2, SIZE * 0.68);
+  if (aiMode) { ctx.lineWidth = 7; ctx.strokeText(subStr, SIZE / 2, SIZE * 0.68); }
+  ctx.fillText(subStr, SIZE / 2, SIZE * 0.68);
   ctx.restore();
 
   return canvas.toDataURL("image/png");

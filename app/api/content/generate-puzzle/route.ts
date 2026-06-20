@@ -9,8 +9,10 @@ import {
   buildRebusWordPrompt,
   buildCountItemsPrompt,
   buildMathChallengePrompt,
+  buildMathBackgroundPrompt,
   MATH_HOOKS,
   MATH_SUBS,
+  MATH_AI_SCENES,
   buildProverbRebusPrompt,
   buildProverbRebusAIImagePrompt,
   buildRebusWordImagePrompt,
@@ -97,6 +99,7 @@ export async function POST(request: NextRequest) {
       customTopic,
       syllableCount = 3,
       difficulty = "medium",
+      mathBgStyle = "canvas",
       model,
       aspectRatio = "1:1",
       excludeProverb,
@@ -152,6 +155,14 @@ export async function POST(request: NextRequest) {
       const data = parseJSON(raw);
 
       const theme = pickRandom(MATH_THEMES) as MathThemeId;
+
+      // "สวย (AI)" mode: AI paints a photoreal scene, canvas overlays the text.
+      let backgroundImageDataUri: string | undefined;
+      if (mathBgStyle === "ai") {
+        const scenePrompt = buildMathBackgroundPrompt(pickRandom(MATH_AI_SCENES));
+        backgroundImageDataUri = await generateImage({ prompt: scenePrompt, aspectRatio, model });
+      }
+
       return NextResponse.json({
         method: "canvas",
         puzzleType: "math-challenge",
@@ -161,6 +172,7 @@ export async function POST(request: NextRequest) {
           headline: pickRandom(MATH_HOOKS),
           subText: pickRandom(MATH_SUBS),
           theme,
+          ...(backgroundImageDataUri ? { backgroundImageDataUri } : {}),
         },
         caption: String(data.caption),
         answer: Number(data.answer),

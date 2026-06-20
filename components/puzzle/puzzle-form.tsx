@@ -14,19 +14,13 @@ export interface PuzzleFormData {
   puzzleType: PuzzleTypeId;
   customTopic?: string;
   syllableCount?: number;
-  difficulty?: string;
+  mathBgStyle?: "canvas" | "ai";
 }
 
 interface PuzzleFormProps {
   onGenerate: (data: PuzzleFormData) => void;
   isGenerating: boolean;
 }
-
-const DIFFICULTY_OPTIONS = [
-  { id: "easy", label: "ง่าย" },
-  { id: "medium", label: "กลาง" },
-  { id: "hard", label: "ยาก" },
-];
 
 const SYLLABLE_OPTIONS = [2, 3, 4, 5, 6];
 
@@ -35,7 +29,7 @@ export const PuzzleForm = forwardRef<PuzzleFormHandle, PuzzleFormProps>(
     const [puzzleType, setPuzzleType] = useState<PuzzleTypeId>("find-hidden");
     const [customTopic, setCustomTopic] = useState("");
     const [syllableCount, setSyllableCount] = useState(3);
-    const [difficulty, setDifficulty] = useState("medium");
+    const [mathBgStyle, setMathBgStyle] = useState<"canvas" | "ai">("canvas");
 
     useImperativeHandle(ref, () => ({
       submit: () =>
@@ -43,7 +37,7 @@ export const PuzzleForm = forwardRef<PuzzleFormHandle, PuzzleFormProps>(
           puzzleType,
           customTopic: customTopic.trim() || undefined,
           syllableCount,
-          difficulty,
+          mathBgStyle,
         }),
     }));
 
@@ -121,22 +115,26 @@ export const PuzzleForm = forwardRef<PuzzleFormHandle, PuzzleFormProps>(
           <Card className="border-l-4 border-l-amber-500">
             <CardContent className="p-0">
               <div className="border-b px-4 py-2.5">
-                <span className="text-sm font-medium">ระดับความยาก</span>
+                <span className="text-sm font-medium">พื้นหลัง</span>
               </div>
               <div className="flex gap-2 p-4">
-                {DIFFICULTY_OPTIONS.map((d) => (
+                {([
+                  { id: "canvas", label: "⚡ เร็ว (ฟรี)", desc: "ลายสำเร็จรูป สร้างทันที" },
+                  { id: "ai", label: "🎨 สวย (AI)", desc: "AI วาดพื้นหลังจริง · ช้ากว่า" },
+                ] as const).map((o) => (
                   <button
-                    key={d.id}
+                    key={o.id}
                     type="button"
-                    onClick={() => setDifficulty(d.id)}
+                    onClick={() => setMathBgStyle(o.id)}
                     disabled={isGenerating}
-                    className={`flex-1 rounded-lg border py-2.5 text-sm font-medium transition-colors ${
-                      difficulty === d.id
+                    className={`flex-1 rounded-lg border px-3 py-2.5 text-center transition-colors ${
+                      mathBgStyle === o.id
                         ? "border-amber-500 bg-amber-500/10 text-amber-400"
                         : "border-muted bg-muted/30 text-muted-foreground hover:bg-muted/50"
                     }`}
                   >
-                    {d.label}
+                    <div className="text-sm font-medium">{o.label}</div>
+                    <div className="mt-0.5 text-[11px] opacity-80">{o.desc}</div>
                   </button>
                 ))}
               </div>

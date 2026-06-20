@@ -71,6 +71,34 @@ export interface MathChallengeData {
   headline: string;
   subText?: string;
   theme?: "notebook" | "wood" | "chalkboard" | "vintage" | "graph" | "kraft";
+  // When set, the canvas paints this AI-generated scene as the background
+  // and overlays the equation text on top (AI background mode).
+  backgroundImageDataUri?: string;
+}
+
+// Photoreal scene prompts for the "สวย (AI)" background mode. The AI must draw
+// ONLY the surface/scene with an empty middle — the canvas overlays all text,
+// so the image must contain NO numbers or letters.
+export const MATH_AI_SCENES: readonly string[] = [
+  "a real dark green school chalkboard inside a warm wooden frame, faint chalk dust and a few colourful tiny chalk doodles (stars, hearts) only in the far corners",
+  "a top-down view of an open lined school notebook page, soft natural light, a yellow pencil and a small eraser resting near the bottom corner",
+  "a hanging wooden signboard with carved rounded edges, against a cozy cafe wall with soft bokeh lights in the background",
+  "a vintage cream parchment poster with aged paper texture, decorative ornate corners and a thin classic border frame",
+  "a sheet of light blue graph/grid paper on a wooden desk, a ruler and a colourful sticky note in one corner",
+  "a brown kraft-paper card pinned to a cork board with colourful push-pins and a little washi-tape strip in the corner",
+];
+
+export function buildMathBackgroundPrompt(scene: string): string {
+  return `Create a 1:1 square photorealistic BACKGROUND image for a Thai Facebook math puzzle post.
+${FB_SAFE_RULE}
+
+Scene: ${scene}
+
+CRITICAL RULES:
+- The CENTER 60% of the image MUST be clean and empty (no objects, no clutter) — text will be added later on top.
+- Absolutely NO text, NO numbers, NO letters, NO equations, NO digits anywhere in the image.
+- Decorations/props only near the edges and corners; keep them subtle so overlaid text stays readable.
+- Bright, colourful, eye-catching, high quality. Square 1:1 composition.`;
 }
 
 // Rotating banks so the on-image text never looks repetitive.

@@ -89,7 +89,7 @@ export default function HomePage() {
           if (r.puzzleType === "find-hidden") {
             dataUrl = generateFindHiddenImage(r.canvasData as FindHiddenData);
           } else {
-            dataUrl = generateMathChallengeImage(r.canvasData as MathChallengeData);
+            dataUrl = await generateMathChallengeImage(r.canvasData as MathChallengeData);
           }
           setImageUrl(dataUrl);
         } else if (r.imageDataUri) {
