@@ -1,9 +1,12 @@
 {
-  "name": "engagement-generator",
+  "name": "metapuzz",
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "(lsof -ti:3000 | xargs kill -9 2>/dev/null) ; rm -f .next/dev/lock ; true",
     "dev": "next dev",
+    "clean": "rm -rf .next",
+    "fresh": "rm -rf .next && npm run dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
